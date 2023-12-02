@@ -14,7 +14,7 @@ RUN pip uninstall torch -y
 RUN pip install torch==2.0.1 -f https://download.pytorch.org/whl/cu118
 COPY builder/setup.sh /setup.sh
 RUN chmod +x /setup.sh && \
-    /setup.sh && \
+    sh /setup.sh && \
     rm /setup.sh
 
 # Install fast api

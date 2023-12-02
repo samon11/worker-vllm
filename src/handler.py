@@ -44,7 +44,7 @@ engine_args = AsyncEngineArgs(
     seed=0,
     disable_log_stats=False,
     quantization=QUANTIZATION,
-    max_model_len=MAX_MODEL_LEN
+    max_model_len=None if MAX_MODEL_LEN is None else int(MAX_MODEL_LEN)
 )
 
 # Create the vLLM asynchronous engine
@@ -351,10 +351,10 @@ async def handler(job: dict) -> dict[str, list]:
     runpod_metrics['scenario'] = 'batch'
 
     # Include metrics for the job.
-    runpod.serverless.modules.rp_metrics.metrics_collector.push_metrics_internal(
-        job_id=job['id'],
-        metrics=runpod_metrics
-    )
+    # runpod.serverless.modules.rp_metrics.metrics_collector.push_metrics_internal(
+    #     job_id=job['id'],
+    #     metrics=runpod_metrics
+    # )
 
     ret = {
         "text": text_outputs,
