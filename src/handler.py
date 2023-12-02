@@ -4,7 +4,7 @@
 # Start the vLLM serving layer on our RunPod worker.
 from typing import Generator
 from metrics import vllm_log_system_stats
-from templates import DEFAULT_TEMPLATE, LLAMA2_TEMPLATE
+from templates import DEFAULT_TEMPLATE, LLAMA2_TEMPLATE, SELF_RAG_TEMPLATE
 from vllm import AsyncLLMEngine, SamplingParams, AsyncEngineArgs
 from vllm.utils import random_uuid
 import runpod
@@ -17,6 +17,7 @@ STREAMING = os.environ.get('STREAMING', False) == 'True'
 TOKENIZER = os.environ.get('TOKENIZER', None)
 USE_FULL_METRICS = os.environ.get('USE_FULL_METRICS', True)
 QUANTIZATION = os.environ.get('QUANTIZATION', None)
+MAX_MODEL_LEN = os.environ.get('MAX_MODEL_LEN', None)
 
 if not MODEL_NAME:
     print("Error: The model has not been provided.")
@@ -43,6 +44,7 @@ engine_args = AsyncEngineArgs(
     seed=0,
     disable_log_stats=False,
     quantization=QUANTIZATION,
+    max_model_len=MAX_MODEL_LEN
 )
 
 # Create the vLLM asynchronous engine
@@ -144,8 +146,11 @@ async def handler_streaming(job: dict) -> Generator[dict[str, list], None, None]
 
     # Utilize the built-in llama2 template if a llama2 base model is being employed.
     llama_models = ["llama-2-7b-chat-hf", "llama-2-13b-chat-hf", "llama-2-70b-chat-hf", "elinas/chronos-13b-v2"]
+    self_rag_models = ["sciphi-self-rag-mistral-7b-32k-awq"]
     if any(model_name.lower() in MODEL_NAME.lower() for model_name in llama_models):
         template = LLAMA2_TEMPLATE
+    elif any(model_name.lower() in MODEL_NAME.lower() for model_name in self_rag_models):
+        template = SELF_RAG_TEMPLATE
     else:
         template = DEFAULT_TEMPLATE
 
@@ -299,13 +304,16 @@ async def handler(job: dict) -> dict[str, list]:
 
     # Utilize the built-in llama2 template if a llama2 base model is being employed.
     llama_models = ["llama-2-7b-chat-hf", "llama-2-13b-chat-hf", "llama-2-70b-chat-hf", "elinas/chronos-13b-v2"]
+    self_rag_models = ["SciPhi-Self-RAG-Mistral-7B-32k-AWQ"]
     if any(model_name.lower() in MODEL_NAME.lower() for model_name in llama_models):
         template = LLAMA2_TEMPLATE
+    elif any(model_name.lower() in MODEL_NAME.lower() for model_name in self_rag_models):
+        template = SELF_RAG_TEMPLATE
     else:
         template = DEFAULT_TEMPLATE
 
     # Create the prompt using the template.
-    prompt = template(job_input['prompt'])
+    prompt = template(job_input['prompt'], job_input.get('system', None))
 
     # Validate and set sampling parameters
     sampling_params = validate_and_set_sampling_params(job_input.get('sampling_params', None))
